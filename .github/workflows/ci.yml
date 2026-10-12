@@ -83,7 +83,7 @@ jobs:
         with:
           terraform_version: '1.9.8'
       - name: Format
-        run: terraform -chdir=infra/terraform fmt -check -recursive
+        run: terraform -chdir=infra/terraform fmt -check -diff -recursive
       - name: Initialize without backend
         run: terraform -chdir=infra/terraform init -backend=false -input=false -no-color
       - name: Validate existing foundation scaffold
