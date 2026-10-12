@@ -1,9 +1,24 @@
-# Administrative gate: main is not protected yet
+# GitHub branch ruleset — main
 
-This file is a proposed branch ruleset, **not evidence that protection is active**. GitHub connector access here supports code writes, but not administrative ruleset changes.
+**Status: ACTIVE, verified on 2026-10-12.**
 
-Open [repository rules settings](https://github.com/irelia0nerf/gcp-reliability-engineering/settings/rules), choose **New branch ruleset**, target `main`, enforcement **Active**. Disable force pushes and deletions; require pull requests; require strict up-to-date status checks **tests**, **lint**, **security**, **terraform**. For independent reviewer availability, increase approvals to one.
+The repository administrator imported the ruleset `foundation-protect-main` (GitHub ruleset ID `24908159`). A GitHub API read verified:
 
-Do not enforce until each status check actually appears after GitHub Actions run. Verify subsequently that `GET /branches/main` reports protected and active rulesets appear at `GET /rulesets`. GitHub supports [importing a prebuilt ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository).
+- `GET /repos/irelia0nerf/gcp-reliability-engineering/branches/main`: `protected: true`.
+- `GET /repos/irelia0nerf/gcp-reliability-engineering/rulesets/24908159`: `enforcement: active`, target `refs/heads/main`.
+- Force-push and deletion disallowed; pull requests and resolution of review threads required.
+- Up-to-date required status checks: `tests`, `lint`, `security`, `terraform`.
+- No bypass actors and **zero required approving reviews** (solo-maintainer policy).
 
-Until verified: `MAIN_PROTECTION=NOT_CONFIGURED`.
+[Inspect repository rules](https://github.com/irelia0nerf/gcp-reliability-engineering/settings/rules). The versioned [main.json](./main.json) is a configuration template, not a live binding; the live GitHub ruleset is the enforcement source of truth.
+
+**Verification commands (read-only):**
+
+```bash
+gh api repos/irelia0nerf/gcp-reliability-engineering/branches/main --jq '.protected'
+gh api repos/irelia0nerf/gcp-reliability-engineering/rulesets/24908159 --jq '{name, enforcement, conditions, rules}'
+```
+
+**Governance limitation:** GitHub does not require an independent approval under the current 0-review ruleset. The responsible maintainer should still review diffs and logs before merging. Raise the review count to 1 when an independent reviewer is available.
+
+**Evidence is point-in-time.** Recheck protection and check names before every significant integration; a JSON file or a prior screenshot is not ongoing proof of enforcement.
