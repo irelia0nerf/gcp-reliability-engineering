@@ -18,7 +18,7 @@ This is a separate opt-in Terraform root. By default `enable_infra=false`; all r
 1. Dedicated billed project, approved spending limit/alerts and teardown plan. Billing alerts are not hard spending caps.
 2. API enablement, IAM review, Cloud Tasks agent token-minting permissions, networking/ingress, and region placement review.
 3. Build and scan a reproducible container; sign and pin immutable digest. `Dockerfile.regional` is a sample, not a signed artifact.
-4. Create Cloud SQL user and a **preexisting** Secret Manager secret containing `postgresql://USER:PASSWORD@/atlas?host=/cloudsql/PROJECT:REGION:INSTANCE`. Secret contents must be created out of band, not committed or passed through Terraform state. Test Cloud SQL socket connection separately.
+4. Create a Cloud SQL user and a **preexisting** Secret Manager secret containing a PostgreSQL DSN for database `atlas`, with the Cloud SQL Unix socket hostname, a dedicated username and a strong credential. Do not place example credentials in repository URLs. Secret bytes must be created out of band, not committed or passed through Terraform state. Test Cloud SQL socket connection separately.
 5. Verify database schema migration is approved and applied in a controlled procedure; app never silently auto-migrates production.
 6. Set `expected_audience` to a stable HTTPS custom audience supported by Cloud Run; verify issuer, `aud`, verified email and invoker IAM.
 7. Validate Terraform changes including a manually reviewed **credentialed plan**. Only then obtain explicit permission for `terraform apply` and Cloud Scheduler unpause.
