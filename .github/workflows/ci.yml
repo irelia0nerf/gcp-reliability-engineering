@@ -1,11 +1,30 @@
-name: local-reliability-tests
+name: foundation-ci
 on:
   push:
   pull_request:
 permissions:
   contents: read
 jobs:
-  unittest:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit and adversarial tests
+        run: python -m unittest discover -s tests -v
+      - name: Synthetic evidence R01-R08
+        run: python -m src.scenarios --scenario all > scenarios.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulated-evidence
+          path: scenarios.json
+          retention-days: 7
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -13,5 +32,41 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m unittest discover -s tests -v
-      - run: python -m src.demo --scenario R04
+      - run: python -m pip install ruff==0.11.13
+      - name: Legacy and new code correctness lint
+        run: ruff check --select E4,E9,F63,F7,F82 src tests
+      - name: New code full F rule set
+        run: ruff check --select F src/auth.py src/http_api.py src/scenarios.py tests/test_foundation.py
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install bandit==1.8.6 detect-secrets==1.5.0
+      - name: Bandit medium and high SAST
+        run: bandit -q -r src -ll
+      - name: Repository secret detection
+        run: |
+          detect-secrets scan --all-files --exclude-files '\.terraform/|\.git/' > /tmp/detected.json
+          python -c 'import json; d=json.load(open("/tmp/detected.json")); n=sum(len(x) for x in d["results"].values()); print("Secret candidates:", n); raise SystemExit(bool(n))'
+  terraform:
+    name: terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+      - name: Format
+        run: terraform -chdir=infra/terraform fmt -check -recursive
+      - name: Initialize without backend
+        run: terraform -chdir=infra/terraform init -backend=false -input=false -no-color
+      - name: Validate only (no apply and no GCP credentials)
+        run: terraform -chdir=infra/terraform validate -no-color

@@ -1,29 +1,28 @@
 # GCP Reliability Engineering — FAILURE IS A CONTRACT
 
-**Status: Executable local simulation. No Google Cloud deployment, measured production SLO, or regional-failover claim.**
+**Status: local reliability/security simulation, not Google Cloud deployment. CLOUD GO: HOLD.**
 
-This public Atlas Operations lab demonstrates tenant-scoped local durable admission, SQLite transactional effect idempotency, safe retries after a lost ACK, concurrent duplicate-worker delivery, and synthetic fault injection.
+A synthetic multi-tenant Atlas Operations lab exercising durable *local* admission, idempotent effects, lost-ACK retries, bounded poison simulations, tenant-isolated reads, and a loopback-only HTTP API.
 
-## Reproduce
+## Run (Python 3.12+)
 
 ```bash
 python -m unittest discover -s tests -v
-python -m src.demo --scenario R04
+python -m src.scenarios --scenario all
+python -m src.scenarios --scenario R04
 ```
 
-Local simulation is not cloud availability evidence. SQLite is single-host storage and must **never** be used as an authoritative durable Cloud Run database. Tenant identifiers in this exercise are untrusted inputs, not proof of authentication. Do not expose the lab as a production service.
+R01–R08 produce structured **SIMULATED** evidence. R06 is a simplified persisted poison fixture; R07 is a *sequential local burst*; R08 does **not** perform a real CI/deployment rollback. R09–R12 remain **NOT_TESTED**.
 
-| Capability | Evidence |
-|---|---|
-| Atomic local synthetic effect | LOCAL_SIMULATION |
-| Lost-ACK retry and replay | LOCAL_SIMULATION |
-| Admission refusal during store failure | LOCAL_SIMULATION |
-| Google Cloud regional resilience | NOT_DEPLOYED |
-| SLO / RTO / RPO | NOT_MEASURED |
-| Cross-region failover | NOT_TESTED |
+The HTTP API (`python -m src.http_api`) binds loopback only and requires a short-lived, test-only HMAC bearer signed via `LabAuthority.issue_for_test` outside the HTTP request boundary. No public token-issuing API exists; test via the adversarial suite. Tenant headers cannot grant authority. These tokens are not production GCP/OIDC identity. Do not expose the lab to untrusted networks.
 
-Read the [reliability contract](docs/reliability-contract.md), [ADR-001](docs/adr/001-regional-first.md), and [evidence dossier](evidence/RELIABILITY_DOSSIER.md).
+## Architecture & evidence
 
-**Next steps:** authenticated tenancy, durable managed storage and async transport, cloud deployment under separate approval, monitored SLIs, and multi-region failure drills only after the persistence contract is specified.
+- [Full challenge](docs/challenge.md) and [reliability contract](docs/reliability-contract.md)
+- [Threat and fault model](docs/threat-and-fault-model.md)
+- [Architecture decisions](docs/adr/), [recovery runbook](docs/runbooks/local-recovery.md)
+- [Evidence dossier](evidence/RELIABILITY_DOSSIER.md)
+- [Terraform validate-only scaffold](infra/terraform/README.md)
+- [Ruleset activation manual step](.github/rulesets/README.md)
 
-**Source:** Google Cloud [Infrastructure Reliability Guide](https://docs.cloud.google.com/architecture/infra-reliability-guide/building-blocks).
+The existing SQLite model is single-host and unsuitable as Cloud Run persistent storage. Terraform is disabled by default; CI runs `fmt`, `init -backend=false` and `validate` only. No GCP secrets, no apply, no SLO/RTO/RPO measurements.
