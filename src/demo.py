@@ -1,5 +1,10 @@
 """Reproducible local simulation, not proof of GCP resilience."""
-import argparse, datetime, json, os, tempfile, uuid
+import argparse
+import datetime
+import json
+import os
+import tempfile
+import uuid
 from src.atlas import Atlas, Unavailable
 def run(scenario):
     with tempfile.TemporaryDirectory() as d:
