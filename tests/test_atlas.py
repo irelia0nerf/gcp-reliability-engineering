@@ -1,4 +1,7 @@
-import os, tempfile, threading, unittest
+import os
+import tempfile
+import threading
+import unittest
 from src.atlas import Atlas, Unavailable, Conflict, Forbidden
 
 class ReliabilityTests(unittest.TestCase):
