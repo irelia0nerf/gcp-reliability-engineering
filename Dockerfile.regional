@@ -1,0 +1,10 @@
+# Offline build sample. Pin the base image digest before any approved cloud deployment.
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /opt/atlas
+COPY requirements-regional.txt .
+RUN python -m pip install --no-cache-dir -r requirements-regional.txt
+COPY regional /opt/atlas/regional
+USER 65532:65532
+EXPOSE 8080
+CMD ["python","-m","regional.http_api"]

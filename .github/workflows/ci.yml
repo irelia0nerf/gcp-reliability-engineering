@@ -9,12 +9,30 @@ jobs:
     name: tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: atlas
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: atlas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atlas -d atlas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ATLAS_TEST_PG_DSN: postgresql://atlas@127.0.0.1:5432/atlas_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Unit and adversarial tests
+      - name: Install isolated Postgres test driver
+        run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - name: Unit, adversarial and PostgreSQL integration tests
         run: python -m unittest discover -s tests -v
       - name: Synthetic evidence R01-R08
         run: python -m src.scenarios --scenario all > scenarios.json
@@ -34,9 +52,9 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install ruff==0.11.13
       - name: Legacy and new code correctness lint
-        run: ruff check --select E4,E9,F63,F7,F82 src tests
+        run: ruff check --select E4,E9,F63,F7,F82 src regional tests
       - name: New code full F rule set
-        run: ruff check --select F src/auth.py src/http_api.py src/scenarios.py tests/test_foundation.py
+        run: ruff check --select F src/auth.py src/http_api.py src/scenarios.py regional tests/test_foundation.py tests/test_regional.py tests/test_regional_pg.py
   security:
     name: security
     runs-on: ubuntu-latest
@@ -50,11 +68,11 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install bandit==1.8.6 detect-secrets==1.5.0
       - name: Bandit medium and high SAST
-        run: bandit -q -r src -ll
+        run: bandit -q -r src regional -ll
       - name: Repository secret detection
         run: |
           detect-secrets scan --all-files --exclude-files '\.terraform/|\.git/' > /tmp/detected.json
-          python -c 'import json; d=json.load(open("/tmp/detected.json")); n=sum(len(x) for x in d["results"].values()); print("Secret candidates:", n); raise SystemExit(bool(n))'
+          python -c 'import json; d=json.load(open("/tmp/detected.json")); xs=[(f,r["type"],r["line_number"]) for f,rs in d["results"].items() for r in rs]; print("Secret candidate file/type/line (redacted):",xs); raise SystemExit(bool(xs))'
   terraform:
     name: terraform
     runs-on: ubuntu-latest
@@ -65,8 +83,12 @@ jobs:
         with:
           terraform_version: '1.9.8'
       - name: Format
-        run: terraform -chdir=infra/terraform fmt -check -recursive
+        run: terraform -chdir=infra/terraform fmt -check -diff -recursive
       - name: Initialize without backend
         run: terraform -chdir=infra/terraform init -backend=false -input=false -no-color
-      - name: Validate only (no apply and no GCP credentials)
+      - name: Validate existing foundation scaffold
         run: terraform -chdir=infra/terraform validate -no-color
+      - name: Initialize regional prototype without backend
+        run: terraform -chdir=infra/terraform/regional init -backend=false -input=false -no-color
+      - name: Validate regional prototype only — NEVER APPLY
+        run: terraform -chdir=infra/terraform/regional validate -no-color
