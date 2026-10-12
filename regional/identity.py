@@ -36,10 +36,14 @@ class IdentityPolicy:
             raise ValueError("separate worker and dispatcher identities")
         if not isinstance(callers, dict):
             raise ValueError("caller map must be an object")
-        self.audience = audience
-        self.callers = callers
         self.task_email = task_email.lower()
         self.dispatcher_email = dispatcher_email.lower()
+        if any(not isinstance(email, str) or email != email.lower()
+               or email in (self.task_email, self.dispatcher_email)
+               for email in callers):
+            raise ValueError("caller identities must be lowercase and separated from service roles")
+        self.audience = audience
+        self.callers = callers
         self.verifier = verifier
 
     @classmethod
