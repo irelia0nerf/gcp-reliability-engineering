@@ -14,7 +14,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: atlas
-          POSTGRES_PASSWORD: ci-only-not-for-production
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: atlas_test
         ports:
           - 5432:5432
@@ -24,7 +24,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      ATLAS_TEST_PG_DSN: postgresql://atlas:ci-only-not-for-production@127.0.0.1:5432/atlas_test
+      ATLAS_TEST_PG_DSN: postgresql://atlas@127.0.0.1:5432/atlas_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -72,7 +72,7 @@ jobs:
       - name: Repository secret detection
         run: |
           detect-secrets scan --all-files --exclude-files '\.terraform/|\.git/' > /tmp/detected.json
-          python -c 'import json; d=json.load(open("/tmp/detected.json")); n=sum(len(x) for x in d["results"].values()); print("Secret candidates:", n); raise SystemExit(bool(n))'
+          python -c 'import json; d=json.load(open("/tmp/detected.json")); xs=[(f,r["type"],r["line_number"]) for f,rs in d["results"].items() for r in rs]; print("Secret candidate file/type/line (redacted):",xs); raise SystemExit(bool(xs))'
   terraform:
     name: terraform
     runs-on: ubuntu-latest
