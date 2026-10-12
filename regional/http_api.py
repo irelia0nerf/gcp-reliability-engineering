@@ -148,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(store,identity,publisher,host="127.0.0.1",port=0):
-    if host not in ("127.0.0.1","localhost","0.0.0.0"):
+    if host not in ("127.0.0.1","localhost","0.0.0.0"):  # nosec B104 — private Cloud Run ingress
         raise ValueError("unsupported bind host")
     server=ThreadingHTTPServer((host,port),Handler)
     server.store,server.identity,server.publisher=store,identity,publisher
@@ -163,7 +163,7 @@ def main():
         os.environ["ATLAS_PROJECT_ID"],os.environ["ATLAS_REGION"],
         os.environ["ATLAS_QUEUE_NAME"],os.environ["ATLAS_EXPECTED_AUDIENCE"],
         os.environ["ATLAS_TASK_SERVICE_ACCOUNT"])
-    host=os.environ.get("ATLAS_BIND_HOST","0.0.0.0")
+    host=os.environ.get("ATLAS_BIND_HOST","0.0.0.0")  # nosec B104 — Cloud Run container bind
     server=make_server(store,identity,publisher,host,int(os.environ.get("PORT","8080")))
     LOG.info("Regional Atlas service started; cloud reliability NOT VERIFIED")
     server.serve_forever()
