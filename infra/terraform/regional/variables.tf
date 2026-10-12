@@ -52,7 +52,7 @@ variable "caller_tenant_map" {
   }))
   default = {}
   validation {
-    condition = !var.enable_infra || length(var.caller_tenant_map) > 0
+    condition     = !var.enable_infra || length(var.caller_tenant_map) > 0
     error_message = "Declare at least one authenticated caller principal."
   }
 }
