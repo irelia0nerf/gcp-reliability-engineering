@@ -215,6 +215,10 @@ class LeaseAndPolicyTests(unittest.TestCase):
             IdentityPolicy("",{},TASK,DISPATCH)
         with self.assertRaises(ValueError):
             IdentityPolicy(AUD,{},TASK,TASK)
+        with self.assertRaises(ValueError):
+            IdentityPolicy(AUD,{TASK:{"tenant":"A","scopes":["jobs:create"]}},TASK,DISPATCH)
+        with self.assertRaises(ValueError):
+            IdentityPolicy(AUD,{DISPATCH:{"tenant":"A","scopes":["jobs:read"]}},TASK,DISPATCH)
 
     def test_signed_claims_are_not_accepted_without_verification(self):
         policy=IdentityPolicy(AUD,{},TASK,DISPATCH,verifier=lambda _t,_a:{"email":TASK})
